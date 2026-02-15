@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: GPL-2.0-only
+config SECURITY_IEI
+       bool "IEI Linux Security Module"
+       depends on SECURITY
+       select SECURITYFS
+       help
+         IEI(Inode Execution Integrity) is a simple Linux Security Module
+	 for experimental and research purposes.

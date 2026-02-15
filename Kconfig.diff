@@ -1,0 +1,12 @@
+diff --git a/security/Kconfig b/security/Kconfig
+index 7ac95684ac7b..535594ea59da 100644
+--- a/security/Kconfig
++++ b/security/Kconfig
+@@ -195,6 +195,7 @@ source "security/safesetid/Kconfig"
+ source "security/lockdown/Kconfig"
+ source "security/landlock/Kconfig"
+ source "security/ztlsm/Kconfig"
++source "security/iei/Kconfig"
+ 
+ source "security/integrity/Kconfig"
+ 
