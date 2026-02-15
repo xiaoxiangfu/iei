@@ -1,2 +1,2 @@
-# SPDX-License-Identifier: GPL-2.0-only
+# SPDX-License-Identifier: GPL
 obj-$(CONFIG_SECURITY_IEI) += iei.o
