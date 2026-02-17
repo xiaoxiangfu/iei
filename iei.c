@@ -5,6 +5,54 @@
  *
  * Author: Zhi Li <lizhi1215@sina.com>
  */
+
+/*
+ * ================================================================
+ *  设计说明与实现边界
+ * ================================================================
+ *
+ *  本模块用于教学与研究目的，旨在演示一种基于 inode 绑定的
+ *  执行完整性机制（Inode-bound Execution Integrity），
+ *  重点展示 LSM 钩子、RCU 机制、哈希表组织方式以及
+ *  securityfs 接口的实现方法。
+ *
+ *  为了突出机制本身的结构与并发模型，本实现做了若干
+ *  有意识的简化与取舍，说明如下：
+ *
+ *  1. 文件标识模型
+ *     - 文件身份以 (dev, inode) 作为唯一标识。
+ *     - 未处理 inode 重用、overlayfs 映射、NFS 语义差异、
+ *       bind mount 别名等复杂文件系统行为。
+ *     - 未引入文件哈希或 fs-verity 等密码学完整性校验。
+ *
+ *  2. 策略输入模型
+ *     - policy 文件采用简化的文本格式。
+ *     - parse_policy_buffer() 假设输入为结构完整的数据块。
+ *     - 未实现严格的事务式校验与错误回滚机制。
+ *     - 输入格式错误时可能被忽略而非显式报错。
+ *
+ *  3. 并发模型假设
+ *     - clone_policy_rcu() 需在 rcu_read_lock() 保护下调用。
+ *     - insert_pair() 假设由调用者保证外部同步。
+ *     - policy 写入场景默认单写者模型。
+ *
+ *  4. 数据结构设计取舍
+ *     - training 模式使用链表以便动态插入。
+ *     - alerting / enforcing 模式将链表压缩为连续数组，
+ *       通过二分查找提升查询效率。
+ *     - 为了便于理解结构演进过程，运行期仍保留链表结构，
+ *       而未进行进一步内存压缩优化。
+ *
+ *  5. 监控范围
+ *     - 当前仅通过 mmap(PROT_EXEC) 进行执行路径拦截。
+ *     - 未覆盖所有可能的可执行映射路径。
+ *
+ *  本实现强调结构清晰、机制可读与并发模型示例，
+ *  不以工业级安全完备性为目标。
+ *
+ * ================================================================
+ */
+
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
@@ -15,7 +63,6 @@
 #include <linux/slab.h>
 #include <linux/hashtable.h>
 #include <linux/spinlock.h>
-#include <linux/uaccess.h>
 #include <linux/rcupdate.h>
 #include <linux/audit.h>
 #include <linux/seq_file.h>
